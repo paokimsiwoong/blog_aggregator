@@ -14,9 +14,11 @@ type Config struct {
 	CurrentUserName string `json:"current_user_name"`
 }
 
-// Config 구조체의 CurrentUserName string `json:"current_user_name"` 부분을 채우고 그 구조체를 json파일로 저장하는 함수
-func (c *Config) SetUser(name string) error {
-	c.CurrentUserName = name
+/*
+Config 구조체의 CurrentUserName string `json:"current_user_name"` 부분을 채우고 그 구조체를 json파일로 저장하는 함수
+*/
+func (c *Config) SetUser(userName string) error {
+	c.CurrentUserName = userName
 
 	if err := write(*c); err != nil {
 		return fmt.Errorf("error writing file : %w", err)
