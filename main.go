@@ -40,9 +40,10 @@ func main() {
 		commandMap: make(map[string]func(*state, command) error),
 	}
 
-	// login, register command 등록
+	// command 등록
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
+	cmds.register("users", handlerUsers)
 	cmds.register("reset", handlerReset)
 
 	// 유저 명령어 입력 확인

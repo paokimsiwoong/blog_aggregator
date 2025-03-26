@@ -70,6 +70,27 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
+// users command 입력 시 실행되는 함수 : 모든 유저 리스트 출력
+func handlerUsers(s *state, cmd command) error {
+	curName := s.ptrCfg.CurrentUserName
+	users, err := s.ptrDB.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting users table : %w", err)
+	}
+
+	fmt.Printf("total users : %d\n", len(users))
+
+	for _, user := range users {
+		if user.Name == curName {
+			fmt.Printf("* %s (current)\n", user.Name)
+			continue
+		}
+		fmt.Printf("* %s\n", user.Name)
+	}
+
+	return nil
+}
+
 // reset command 입력 시 실행되는 함수 : users 테이블 리셋
 func handlerReset(s *state, cmd command) error {
 	err := s.ptrDB.ResetUsers(context.Background())

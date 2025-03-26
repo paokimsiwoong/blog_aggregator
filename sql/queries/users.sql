@@ -13,6 +13,9 @@ SELECT * FROM users
 WHERE name = $1; -- name이 UNIQUE이므로 LIMIT 1 필요 없음
 
 
+-- name: GetUsers :many
+SELECT * FROM users;
+
 -- name: ResetUsers :exec
 TRUNCATE TABLE users; -- :exec : The generated method will return the error from ExecContext.
 -- TRUNCATE : https://knitter-amelie.tistory.com/21
