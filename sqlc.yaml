@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - schema: "sql/schema"
+    queries: "sql/queries"
+    engine: "postgresql"
+    gen:
+      go:
+        out: "internal/database"
+# sqlc 문서
+# https://docs.sqlc.dev/en/latest/tutorials/getting-started-postgresql.html

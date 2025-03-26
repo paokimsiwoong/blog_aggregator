@@ -4,3 +4,7 @@
 
 
 create .gatorconfig.json file at $HOME directory 
+
+
+goose 사용
+sqlc 사용

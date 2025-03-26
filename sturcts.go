@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/paokimsiwoong/blog_aggregator/internal/config"
+	"github.com/paokimsiwoong/blog_aggregator/internal/database"
 )
 
 // config.Config의 포인터를 저장하는 구조체
 type state struct {
 	ptrCfg *config.Config
+	ptrDB  *database.Queries
 }
 
 // 명령어 한개의 정보를 저장하는 구조체
