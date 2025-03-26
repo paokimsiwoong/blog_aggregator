@@ -69,3 +69,15 @@ func handlerRegister(s *state, cmd command) error {
 	fmt.Printf("user %s was created : %+v\n", cmd.args[0], user)
 	return nil
 }
+
+// reset command 입력 시 실행되는 함수 : users 테이블 리셋
+func handlerReset(s *state, cmd command) error {
+	err := s.ptrDB.ResetUsers(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("error deleting users table : %w", err)
+	}
+
+	fmt.Println("users table has been reset.")
+	return nil
+}

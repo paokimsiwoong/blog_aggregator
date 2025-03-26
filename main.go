@@ -43,6 +43,7 @@ func main() {
 	// login, register command 등록
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
 
 	// 유저 명령어 입력 확인
 	if len(os.Args) < 2 {

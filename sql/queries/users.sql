@@ -11,3 +11,9 @@ RETURNING *; -- returning 으로 생성한 유저를 바로 반환하고 있음 
 -- name: GetUser :one
 SELECT * FROM users
 WHERE name = $1; -- name이 UNIQUE이므로 LIMIT 1 필요 없음
+
+
+-- name: ResetUsers :exec
+TRUNCATE TABLE users; -- :exec : The generated method will return the error from ExecContext.
+-- TRUNCATE : https://knitter-amelie.tistory.com/21
+-- @@@ 해답은 DELETE FROM users; 사용

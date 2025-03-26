@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, created_at, updated_at, name)
 VALUES (
-    $1,
+    $1, -- $1,2,3,4 는 go 코드에서 sql query의 value들을 채우기 위해 입력하는 변수들을 위한 place holder
     $2,
     $3,
     $4
@@ -48,10 +48,12 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUser = `-- name: GetUser :one
+
 SELECT id, created_at, updated_at, name FROM users
 WHERE name = $1
 `
 
+// returning 으로 생성한 유저를 바로 반환하고 있음 (위에 :one으로 생성한 유저 하나만 반환하도록 함)
 func (q *Queries) GetUser(ctx context.Context, name string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, name)
 	var i User
@@ -62,4 +64,16 @@ func (q *Queries) GetUser(ctx context.Context, name string) (User, error) {
 		&i.Name,
 	)
 	return i, err
+}
+
+const resetUsers = `-- name: ResetUsers :exec
+
+
+TRUNCATE TABLE users
+`
+
+// name이 UNIQUE이므로 LIMIT 1 필요 없음
+func (q *Queries) ResetUsers(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, resetUsers)
+	return err
 }
