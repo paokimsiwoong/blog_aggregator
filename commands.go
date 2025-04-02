@@ -129,7 +129,7 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	// feed를 추가하는 current user 정보를 users 테이블에서 불러오기
 	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
-	if err != nil { // current_user_name 불러오는 데 실패
+	if err != nil { // current_user_name 불러오기 실패
 		return fmt.Errorf("error getting current user: %w", err)
 	}
 
@@ -148,6 +148,21 @@ func handlerAddFeed(s *state, cmd command) error {
 	)
 	if err != nil {
 		return fmt.Errorf("error creating feed : %w", err)
+	}
+
+	// 현재 유저와 추가된 feed pair를 feed_follows 테이블에 추가
+	_, err = s.ptrDB.CreateFeedFollow(
+		context.Background(),
+		database.CreateFeedFollowParams{
+			ID:        uuid.New(),
+			CreatedAt: now,
+			UpdatedAt: now,
+			UserID:    user.ID,
+			FeedID:    feed.ID,
+		},
+	)
+	if err != nil { // 테이블 추가 실패
+		return fmt.Errorf("error creating feed_follow record: %w", err)
 	}
 
 	// fmt.Printf("Added feed: %+v\n", feed)
@@ -189,10 +204,79 @@ func handlerFeeds(s *state, cmd command) error {
 // feeds 출력 함수
 func printFeeds(feeds []database.GetFeedsRow) {
 	for _, feed := range feeds {
+		fmt.Printf("* ID:            %s\n", feed.ID)
 		fmt.Printf("* Name:          %s\n", feed.Name)
 		fmt.Printf("* URL:           %s\n", feed.Url)
 		fmt.Printf("* Created:       %v\n", feed.CreatedAt)
 		fmt.Printf("* Updated:       %v\n", feed.UpdatedAt)
 		fmt.Printf("* UserName:      %s\n", feed.UserName)
 	}
+}
+
+// follow command 입력시 실행되는 함수 : url을 받아서 현재 유저와 url의 피드 pair를 feed_follows 테이블에 저장
+func handlerFollow(s *state, cmd command) error {
+	if len(cmd.args) != 1 { // follow url
+		return errors.New("the follow handler expects one arguments, a feed url")
+	}
+
+	// feed_follow를 추가하는 current user 정보를 users 테이블에서 불러오기
+	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	if err != nil { // current_user_name 불러오기 실패
+		return fmt.Errorf("error getting current user: %w", err)
+	}
+
+	feed, err := s.ptrDB.GetFeedByURL(context.Background(), cmd.args[0])
+	if err != nil { // feed 불러오기 실패
+		return fmt.Errorf("error getting stored feed from url: %w", err)
+	}
+
+	// feed_follows 테이블에 추가
+	now := time.Now()
+	feed_follow, err := s.ptrDB.CreateFeedFollow(
+		context.Background(),
+		database.CreateFeedFollowParams{
+			ID:        uuid.New(),
+			CreatedAt: now,
+			UpdatedAt: now,
+			UserID:    user.ID,
+			FeedID:    feed.ID,
+		},
+	)
+	if err != nil { // 테이블 추가 실패
+		return fmt.Errorf("error creating feed_follow record: %w", err)
+	}
+
+	fmt.Println("=====================================")
+	fmt.Printf("Current user %s follows %s", feed_follow.UserName, feed_follow.FeedName)
+
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
+}
+
+// following command 입력시 실행되는 함수 : 현재 유저가 follow중인 feed 리스트 출력
+func handlerFollowing(s *state, cmd command) error {
+	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	if err != nil { // current_user_name 불러오기 실패
+		return fmt.Errorf("error getting current user: %w", err)
+	}
+
+	followlist, err := s.ptrDB.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil { // current_user_name 불러오기 실패
+		return fmt.Errorf("error getting follows for user: %w", err)
+	}
+
+	fmt.Printf("Current user %s is following:\n", user.Name)
+
+	for i, follow := range followlist {
+		fmt.Printf("%d\n", i)
+		fmt.Printf("* FeedName:      %s\n", follow.FeedName)
+		fmt.Printf("* URL:           %s\n", follow.Url)
+	}
+
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
 }
