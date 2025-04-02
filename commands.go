@@ -100,7 +100,7 @@ func handlerReset(s *state, cmd command) error {
 		return fmt.Errorf("error deleting users table : %w", err)
 	}
 
-	fmt.Println("users table and feeds table have been reset.")
+	fmt.Println("All tables have been reset.")
 	return nil
 }
 
@@ -122,16 +122,16 @@ func handlerAgg(s *state, cmd command) error {
 }
 
 // addfeed command 입력시 실행되는 함수 : 주어진 이름과 url로 rss feed 수집 및 db에 저장
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 { // addfeed 피드이름 피드url
 		return errors.New("the addfeed handler expects two arguments, a new feed name and an url of the feed")
 	}
 
-	// feed를 추가하는 current user 정보를 users 테이블에서 불러오기
-	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
-	if err != nil { // current_user_name 불러오기 실패
-		return fmt.Errorf("error getting current user: %w", err)
-	}
+	// // feed를 추가하는 current user 정보를 users 테이블에서 불러오기
+	// user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	// if err != nil { // current_user_name 불러오기 실패
+	// 	return fmt.Errorf("error getting current user: %w", err)
+	// } // @@@@@ 함수 시그니쳐를 변경(User를 입력받도록)해서 이부분 주석처리
 
 	// feeds 테이블에 새 feed 추가
 	now := time.Now()
@@ -214,16 +214,16 @@ func printFeeds(feeds []database.GetFeedsRow) {
 }
 
 // follow command 입력시 실행되는 함수 : url을 받아서 현재 유저와 url의 피드 pair를 feed_follows 테이블에 저장
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 { // follow url
 		return errors.New("the follow handler expects one arguments, a feed url")
 	}
 
-	// feed_follow를 추가하는 current user 정보를 users 테이블에서 불러오기
-	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
-	if err != nil { // current_user_name 불러오기 실패
-		return fmt.Errorf("error getting current user: %w", err)
-	}
+	// // feed_follow를 추가하는 current user 정보를 users 테이블에서 불러오기
+	// user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	// if err != nil { // current_user_name 불러오기 실패
+	// 	return fmt.Errorf("error getting current user: %w", err)
+	// } // @@@@@ 함수 시그니쳐를 변경(User를 입력받도록)해서 이부분 주석처리
 
 	feed, err := s.ptrDB.GetFeedByURL(context.Background(), cmd.args[0])
 	if err != nil { // feed 불러오기 실패
@@ -255,12 +255,40 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-// following command 입력시 실행되는 함수 : 현재 유저가 follow중인 feed 리스트 출력
-func handlerFollowing(s *state, cmd command) error {
-	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
-	if err != nil { // current_user_name 불러오기 실패
-		return fmt.Errorf("error getting current user: %w", err)
+// unfollow command 입력시 실행되는 함수 : 입력된 url 피드를 unfollow
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 { // unfollow url
+		return errors.New("the unfollow handler expects one arguments, a feed url")
 	}
+
+	err := s.ptrDB.DeleteFeedFollow(
+		context.Background(),
+		database.DeleteFeedFollowParams{
+			Name: user.Name,
+			Url:  cmd.args[0],
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("error deleting feed_follow record: %w", err)
+	}
+
+	fmt.Println("=====================================")
+	fmt.Printf("Current user %s unfollows %s", user.Name, cmd.args[0])
+
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
+
+	// @@@ 해답은 sql 쿼리는 간단하게 user_id, feed_id를 입력받는 걸로 하고 이 handlerUnfollow에서 GetFeedByURL 함수에 url 입력해서 받은 feed의 id를 입력하고 있음
+}
+
+// following command 입력시 실행되는 함수 : 현재 유저가 follow중인 feed 리스트 출력
+func handlerFollowing(s *state, cmd command, user database.User) error {
+	// user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	// if err != nil { // current_user_name 불러오기 실패
+	// 	return fmt.Errorf("error getting current user: %w", err)
+	// } // @@@@@ 함수 시그니쳐를 변경(User를 입력받도록)해서 이부분 주석처리
 
 	followlist, err := s.ptrDB.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil { // current_user_name 불러오기 실패
@@ -279,4 +307,21 @@ func handlerFollowing(s *state, cmd command) error {
 	fmt.Println("=====================================")
 
 	return nil
+}
+
+// Middleware - Function transformation : 반복 사용되던 GetUser 코드 부분을 이 함수 한군데로 통일
+// Middleware is a way to wrap a function with additional functionality. It is a common pattern that allows us to write DRY code.
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+
+	return func(s *state, cmd command) error {
+		//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+		user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+		if err != nil { // current_user_name 불러오기 실패
+			return fmt.Errorf("error getting current user: %w", err)
+		}
+		// 이 반복 사용되는 코드부분을 handler에서 빼와서 이곳으로 이동
+		//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+		return handler(s, cmd, user)
+	}
 }

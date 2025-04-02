@@ -18,6 +18,7 @@ INNER JOIN feeds
 ON returned.feed_id = feeds.id; 
 
 
+-- @@@ :many를 해야 복수 결과 반환
 -- name: GetFeedFollowsForUser :many
 SELECT feed_follows.*, users.name AS user_name, feeds.name AS feed_name, feeds.url FROM feed_follows
 INNER JOIN users
@@ -25,4 +26,8 @@ ON feed_follows.user_id = users.id
 INNER JOIN feeds
 ON feed_follows.feed_id = feeds.id
 WHERE feed_follows.user_id = $1;
--- @@@ :many를 해야 복수 결과 반환
+
+
+-- name: DeleteFeedFollow :exec
+DELETE FROM feed_follows
+WHERE user_id = (SELECT id FROM users WHERE users.name = $1) AND feed_id = (SELECT id FROM feeds WHERE feeds.url = $2);
