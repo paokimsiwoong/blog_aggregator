@@ -169,3 +169,30 @@ func printFeed(feed database.Feed) {
 	fmt.Printf("* URL:           %s\n", feed.Url)
 	fmt.Printf("* UserID:        %s\n", feed.UserID)
 }
+
+// feeds command 입력시 실행되는 함수 : feeds 테이블의 정보를 모두 불러오는 함수
+func handlerFeeds(s *state, cmd command) error {
+	feeds, err := s.ptrDB.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting feeds: %w", err)
+	}
+
+	fmt.Println("Stored feeds:")
+
+	printFeeds(feeds)
+
+	fmt.Println()
+	fmt.Println("=====================================")
+	return nil
+}
+
+// feeds 출력 함수
+func printFeeds(feeds []database.GetFeedsRow) {
+	for _, feed := range feeds {
+		fmt.Printf("* Name:          %s\n", feed.Name)
+		fmt.Printf("* URL:           %s\n", feed.Url)
+		fmt.Printf("* Created:       %v\n", feed.CreatedAt)
+		fmt.Printf("* Updated:       %v\n", feed.UpdatedAt)
+		fmt.Printf("* UserName:      %s\n", feed.UserName)
+	}
+}

@@ -1,3 +1,4 @@
+-- returning 으로 생성한 유저를 바로 반환하고 있음 (위에 :one으로 생성한 유저 하나만 반환하도록 함)
 -- name: CreateFeed :one
 INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
 VALUES (
@@ -7,13 +8,22 @@ VALUES (
     $4,
     $5,
     $6
-)
-RETURNING *; -- returning 으로 생성한 유저를 바로 반환하고 있음 (위에 :one으로 생성한 유저 하나만 반환하도록 함)
+)   
+RETURNING *; 
 
+-- name이 UNIQUE이므로 LIMIT 1 필요 없음
 -- name: GetFeed :one
-SELECT * FROM feeds
-WHERE name = $1; -- name이 UNIQUE이므로 LIMIT 1 필요 없음
+SELECT * FROM feeds 
+WHERE name = $1; 
 
 
 -- name: GetFeeds :many
-SELECT * FROM feeds;
+SELECT feeds.name, feeds.created_at, feeds.updated_at, feeds.url, users.name AS user_name
+FROM feeds
+INNER JOIN users
+ON feeds.user_id = users.id
+ORDER BY feeds.updated_at;
+
+-- @@@ 해답은 -- name: GetFeeds :many <br> SELECT * FROM feeds; 로 간단하게 한 뒤
+-- @@@ users.sql에서 -- name: GetUserById :one <br> SELECT * FROM users WHERE id = $1; 을 추가하고 
+-- @@@ commands.go 에서 feeds에 저장된 user_id를 GetUserById 함수에 입력해 User 구조체를 불러내어 사용

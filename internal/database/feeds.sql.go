@@ -21,7 +21,7 @@ VALUES (
     $4,
     $5,
     $6
-)
+)   
 RETURNING id, created_at, updated_at, name, url, user_id
 `
 
@@ -34,6 +34,7 @@ type CreateFeedParams struct {
 	UserID    uuid.UUID
 }
 
+// returning 으로 생성한 유저를 바로 반환하고 있음 (위에 :one으로 생성한 유저 하나만 반환하도록 함)
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
 	row := q.db.QueryRowContext(ctx, createFeed,
 		arg.ID,
@@ -56,12 +57,11 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 }
 
 const getFeed = `-- name: GetFeed :one
-
-SELECT id, created_at, updated_at, name, url, user_id FROM feeds
+SELECT id, created_at, updated_at, name, url, user_id FROM feeds 
 WHERE name = $1
 `
 
-// returning 으로 생성한 유저를 바로 반환하고 있음 (위에 :one으로 생성한 유저 하나만 반환하도록 함)
+// name이 UNIQUE이므로 LIMIT 1 필요 없음
 func (q *Queries) GetFeed(ctx context.Context, name string) (Feed, error) {
 	row := q.db.QueryRowContext(ctx, getFeed, name)
 	var i Feed
@@ -77,28 +77,36 @@ func (q *Queries) GetFeed(ctx context.Context, name string) (Feed, error) {
 }
 
 const getFeeds = `-- name: GetFeeds :many
-
-
-SELECT id, created_at, updated_at, name, url, user_id FROM feeds
+SELECT feeds.name, feeds.created_at, feeds.updated_at, feeds.url, users.name AS user_name
+FROM feeds
+INNER JOIN users
+ON feeds.user_id = users.id
+ORDER BY feeds.updated_at
 `
 
-// name이 UNIQUE이므로 LIMIT 1 필요 없음
-func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
+type GetFeedsRow struct {
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Url       string
+	UserName  string
+}
+
+func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getFeeds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Feed
+	var items []GetFeedsRow
 	for rows.Next() {
-		var i Feed
+		var i GetFeedsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.Name,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Name,
 			&i.Url,
-			&i.UserID,
+			&i.UserName,
 		); err != nil {
 			return nil, err
 		}
