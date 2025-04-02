@@ -117,6 +117,7 @@ func main() {
 	cmds.register("users", handlerUsers)
 	cmds.register("reset", handlerReset)
 	cmds.register("agg", handlerAgg)
+	cmds.register("addfeed", handlerAddFeed)
 
 	// 유저 명령어 입력 확인
 	if len(os.Args) < 2 {

@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, created_at, updated_at, name)
 VALUES (
-    $1, -- $1,2,3,4 는 go 코드에서 sql query의 value들을 채우기 위해 입력하는 변수들을 위한 place holder
+    $1, -- $1,2,3,4 는 go 코드에서 sql query의 value들을 채우기 위해 입력하는 변수들을 위한 place holder (@@@ postgreSQL만 $1, $2, ... 사용. MySQL은 ?, Oracle은 :val1, :val2 사용)
     $2,
     $3,
     $4
@@ -102,7 +102,7 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 }
 
 const resetUsers = `-- name: ResetUsers :exec
-TRUNCATE TABLE users
+TRUNCATE TABLE users CASCADE
 `
 
 func (q *Queries) ResetUsers(ctx context.Context) error {

@@ -100,7 +100,7 @@ func handlerReset(s *state, cmd command) error {
 		return fmt.Errorf("error deleting users table : %w", err)
 	}
 
-	fmt.Println("users table has been reset.")
+	fmt.Println("users table and feeds table have been reset.")
 	return nil
 }
 
@@ -119,4 +119,53 @@ func handlerAgg(s *state, cmd command) error {
 	// fmt.Printf("Fetched feed: %+v\n", rssFeed)
 	// @@@ 해답처럼 포인터를 바로 넣어도 문제없이 출력(단지 출력 맨 앞에 &가 추가되는 차이)
 	return nil
+}
+
+// addfeed command 입력시 실행되는 함수 : 주어진 이름과 url로 rss feed 수집 및 db에 저장
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 { // addfeed 피드이름 피드url
+		return errors.New("the addfeed handler expects two arguments, a new feed name and an url of the feed")
+	}
+
+	// feed를 추가하는 current user 정보를 users 테이블에서 불러오기
+	user, err := s.ptrDB.GetUser(context.Background(), s.ptrCfg.CurrentUserName)
+	if err != nil { // current_user_name 불러오는 데 실패
+		return fmt.Errorf("error getting current user: %w", err)
+	}
+
+	// feeds 테이블에 새 feed 추가
+	now := time.Now()
+	feed, err := s.ptrDB.CreateFeed(
+		context.Background(),
+		database.CreateFeedParams{
+			ID:        uuid.New(),
+			CreatedAt: now,
+			UpdatedAt: now,
+			Name:      cmd.args[0],
+			Url:       cmd.args[1],
+			UserID:    user.ID,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("error creating feed : %w", err)
+	}
+
+	// fmt.Printf("Added feed: %+v\n", feed)
+	// @@@ 해답의 깔끔한 출력 방식으로 대체
+	fmt.Println("Feed created successfully:")
+	printFeed(feed)
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
+}
+
+// feed 출력 함수
+func printFeed(feed database.Feed) {
+	fmt.Printf("* ID:            %s\n", feed.ID)
+	fmt.Printf("* Created:       %v\n", feed.CreatedAt)
+	fmt.Printf("* Updated:       %v\n", feed.UpdatedAt)
+	fmt.Printf("* Name:          %s\n", feed.Name)
+	fmt.Printf("* URL:           %s\n", feed.Url)
+	fmt.Printf("* UserID:        %s\n", feed.UserID)
 }

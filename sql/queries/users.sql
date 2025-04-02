@@ -17,6 +17,8 @@ WHERE name = $1; -- name이 UNIQUE이므로 LIMIT 1 필요 없음
 SELECT * FROM users;
 
 -- name: ResetUsers :exec
-TRUNCATE TABLE users; -- :exec : The generated method will return the error from ExecContext.
+TRUNCATE TABLE users CASCADE; -- :exec : The generated method will return the error from ExecContext.
 -- TRUNCATE : https://knitter-amelie.tistory.com/21
--- @@@ 해답은 DELETE FROM users; 사용
+-- @@@ 해답은 DELETE FROM users; 사용 + CASCADE 명령어 없어도 문제 없음 
+-- @@@ (DELETE는 한줄한줄 지우면서 기본 설정으로 CASCADE 반영 => CASCADE 명시 안해도 됨)
+-- @@@ (TRUNCATE는 기본 설정으로 CASCADE 반영하지 않음 ==> CASCADE 명시 필수)
