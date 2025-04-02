@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/paokimsiwoong/blog_aggregator/internal/database"
+	"github.com/paokimsiwoong/blog_aggregator/internal/rss"
 )
 
 // login command 입력 시 실행되는 함수
@@ -100,5 +101,22 @@ func handlerReset(s *state, cmd command) error {
 	}
 
 	fmt.Println("users table has been reset.")
+	return nil
+}
+
+// agg command 입력시 실행되는 함수 : rss feed 수집
+func handlerAgg(s *state, cmd command) error {
+	// rss feed 가져올 url
+	url := "https://www.wagslane.dev/index.xml"
+
+	// _, err := rss.FetchFeed(context.Background(), url)
+	rssFeed, err := rss.FetchFeed(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("error fetching feed: %w", err)
+	}
+
+	fmt.Printf("Fetched feed: %+v\n", *rssFeed)
+	// fmt.Printf("Fetched feed: %+v\n", rssFeed)
+	// @@@ 해답처럼 포인터를 바로 넣어도 문제없이 출력(단지 출력 맨 앞에 &가 추가되는 차이)
 	return nil
 }
