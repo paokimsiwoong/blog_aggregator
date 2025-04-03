@@ -21,6 +21,9 @@ SELECT * FROM feeds
 WHERE url = $1;
 
 
+-- @@@ 해답은 -- name: GetFeeds :many <br> SELECT * FROM feeds; 로 간단하게 한 뒤
+-- @@@ users.sql에서 -- name: GetUserById :one <br> SELECT * FROM users WHERE id = $1; 을 추가하고 
+-- @@@ commands.go 에서 feeds에 저장된 user_id를 GetUserById 함수에 입력해 User 구조체를 불러내어 사용
 -- name: GetFeeds :many
 SELECT feeds.id, feeds.name, feeds.created_at, feeds.updated_at, feeds.url, users.name AS user_name
 FROM feeds
@@ -28,6 +31,14 @@ INNER JOIN users
 ON feeds.user_id = users.id
 ORDER BY feeds.updated_at;
 
--- @@@ 해답은 -- name: GetFeeds :many <br> SELECT * FROM feeds; 로 간단하게 한 뒤
--- @@@ users.sql에서 -- name: GetUserById :one <br> SELECT * FROM users WHERE id = $1; 을 추가하고 
--- @@@ commands.go 에서 feeds에 저장된 user_id를 GetUserById 함수에 입력해 User 구조체를 불러내어 사용
+
+-- name: MarkFeedFetched :exec
+UPDATE feeds
+SET updated_at = $1, last_fetched_at = $1
+WHERE id = $2;
+
+
+-- name: GetNextFeedToFetch :one
+SELECT * FROM feeds
+ORDER BY last_fetched_at ASC NULLS FIRST
+LIMIT 1;

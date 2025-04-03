@@ -104,23 +104,6 @@ func handlerReset(s *state, cmd command) error {
 	return nil
 }
 
-// agg command 입력시 실행되는 함수 : rss feed 수집
-func handlerAgg(s *state, cmd command) error {
-	// rss feed 가져올 url
-	url := "https://www.wagslane.dev/index.xml"
-
-	// _, err := rss.FetchFeed(context.Background(), url)
-	rssFeed, err := rss.FetchFeed(context.Background(), url)
-	if err != nil {
-		return fmt.Errorf("error fetching feed: %w", err)
-	}
-
-	fmt.Printf("Fetched feed: %+v\n", *rssFeed)
-	// fmt.Printf("Fetched feed: %+v\n", rssFeed)
-	// @@@ 해답처럼 포인터를 바로 넣어도 문제없이 출력(단지 출력 맨 앞에 &가 추가되는 차이)
-	return nil
-}
-
 // addfeed command 입력시 실행되는 함수 : 주어진 이름과 url로 rss feed 수집 및 db에 저장
 func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 { // addfeed 피드이름 피드url
@@ -324,4 +307,72 @@ func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) 
 
 		return handler(s, cmd, user)
 	}
+}
+
+// agg command 입력시 실행되는 함수 : rss feed 수집
+func handlerAgg(s *state, cmd command) error {
+	if len(cmd.args) != 1 { // agg time_between_requests
+		return errors.New("the agg handler expects one arguments, a time between requests")
+	}
+
+	fmt.Printf("Collecting feeds every %s\n", cmd.args[0])
+
+	// 1s, 1m10s 같은 string 시간간격표현을 time.Duration으로 변환
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
+	if err != nil {
+		return fmt.Errorf("error parsing duration: %w", err)
+	}
+
+	// ticker.C는 지정된 간격마다 그 시점 시간을 받는 채널
+	ticker := time.NewTicker(timeBetweenRequests)
+
+	for ; ; <-ticker.C {
+		if err := scrapeFeeds(s); err != nil {
+			return fmt.Errorf("error scraping feed: %w", err)
+		}
+	}
+
+	// return nil
+}
+
+// DB에서 가장 갱신 시점이 오래된 feed를 찾아 갱신하고 내용을 출력하는 함수
+func scrapeFeeds(s *state) error {
+	// 갱신 안된지 가장 오래된 feed를 받아오기
+	feedToFetch, err := s.ptrDB.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting oldest feed from db: %w", err)
+	}
+
+	// 찾아온 feed는 이제 갱신되므로 last_fetched_at, updated_at 갱신
+	now := time.Now()
+	if err := s.ptrDB.MarkFeedFetched(context.Background(), database.MarkFeedFetchedParams{UpdatedAt: now, ID: feedToFetch.ID}); err != nil {
+		return fmt.Errorf("error marking oldest feed: %w", err)
+	}
+	// @@@ 해답은 query에 RETURNING *; 을 붙여서 갱신 후 해당 feed를 다시 반환 받는다
+
+	rssFeed, err := rss.FetchFeed(context.Background(), feedToFetch.Url)
+	if err != nil {
+		return fmt.Errorf("error fetching feed: %w", err)
+	}
+
+	fmt.Println("=====================================")
+	fmt.Printf("Newly fetched feed at %v:\n", now)
+	fmt.Printf("Feed title: %s\n", rssFeed.Channel.Title)
+	fmt.Printf("Feed url: %s\n", feedToFetch.Url)
+	fmt.Printf("Feed description: %s\n", rssFeed.Channel.Description)
+
+	fmt.Println("=====================================")
+
+	for i, item := range rssFeed.Channel.Item {
+		fmt.Printf("* item %d title: %s\n", (i + 1), item.Title)
+		fmt.Printf("* description: %s\n", item.Description)
+		fmt.Printf("* url: %s\n", item.Link)
+		fmt.Println("----------------------------------------")
+		fmt.Println()
+	}
+
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
 }

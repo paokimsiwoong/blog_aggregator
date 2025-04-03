@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-// 주어진 url에서 rss feed GET으로 가져오는 함수
+// 주어진 url에서 rss feed를 HTTP GET request로 가져오는 함수
+// 추가로 가져온 텍스트 데이터에 escaped 된 문자들 원래 문자로 변환
 func FetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	// http.NewRequest 에 context 추가한 버전 함수
 	req, err := http.NewRequestWithContext(ctx, "GET", feedURL, nil)

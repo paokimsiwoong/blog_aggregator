@@ -3,6 +3,7 @@ CREATE TABLE feeds (
     id UUID PRIMARY KEY,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
+    -- last_fetched_at TIMESTAMP, -- @@@ 해답처럼 별개의 sql 파일로 db 변경사항이 차곡차곡 쌓이도록 변경
     name TEXT NOT NULL,
     url TEXT UNIQUE NOT NULL, -- 동일 url 중복을 막아서 같은 사이트에서 같은 내용 rss feed 안받게 막기
     user_id UUID NOT NULL,
@@ -14,6 +15,7 @@ CREATE TABLE feeds (
     -- 그 해당 record의 user_id를 foreign key로 가지고 있는 feeds 테이블의 모든 record에도 변동 결과를 적용한다.
     -- @@@ 해답은 user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE 
 );
+
 
 -- +goose Down
 DROP TABLE feeds;
