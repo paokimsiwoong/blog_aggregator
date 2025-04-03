@@ -2,7 +2,8 @@
 > ## BOOT.DEV guided project 6
 > * ### CLI RSS feeds collector
 ***
-gator description
+
+### blog_aggregator automatically connects and collects rss feeds' data and let you browse the data  
 
 ***
 <details>
