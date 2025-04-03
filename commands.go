@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -367,6 +369,113 @@ func scrapeFeeds(s *state) error {
 		fmt.Printf("* item %d title: %s\n", (i + 1), item.Title)
 		fmt.Printf("* description: %s\n", item.Description)
 		fmt.Printf("* url: %s\n", item.Link)
+		fmt.Printf("* PubDate: %s\n", item.PubDate)
+		fmt.Println("----------------------------------------")
+		fmt.Println()
+
+		now := time.Now()
+		if _, err := s.ptrDB.CreatePost(
+			context.Background(), database.CreatePostParams{
+				ID:          uuid.New(),
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				Title:       item.Title,
+				Url:         item.Link,
+				Description: convertToNullString(item.Description),
+				PublishedAt: convertToNullTime(item.PubDate),
+				FeedID:      feedToFetch.ID,
+			},
+		); err != nil {
+			errText := err.Error()
+			fmt.Printf("error printing: %s\n", errText)
+			if errText == "pq: duplicate key value violates unique constraint \"posts_url_key\"" {
+				fmt.Println("ignoring duplicate URL error")
+			} else {
+				return fmt.Errorf("error creating post: %w", err)
+			}
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("=====================================")
+
+	return nil
+}
+
+// string을 sql.NullString으로 변환하는 함수
+func convertToNullString(text string) sql.NullString {
+	if len(text) == 0 {
+		return sql.NullString{}
+		// Valid 필드는 bool이므로 default가 false
+	}
+
+	return sql.NullString{
+		String: text,
+		Valid:  true,
+	}
+}
+
+// RSSItem 구조체의 PubDate 필드(string)을 받아 sql.NullTime으로 변환하는 함수
+func convertToNullTime(pubdata string) sql.NullTime {
+	layout := "Mon, 02 Jan 2006 15:04:05 -0700" // 마지막 자리는 시간대 표시 ex: MST는 -0700, UTC는 +0000
+	// layout에는 반드시 reference time(2006년 1월 2일 월요일 15:04:05 MST)를 사용해야 한다
+	// 이 reference time을 원하는 형식으로 변환해서 사용
+	parsed, err := time.Parse(layout, pubdata)
+	// @@@ 해답처럼 time 패키지의 time.RFC1123Z const로 대체 가능 RFC1123Z == "Mon, 02 Jan 2006 15:04:05 -0700"
+	// parsed, err := time.Parse(time.RFC1123Z, pubdata)
+	if err != nil {
+		return sql.NullTime{}
+	}
+
+	return sql.NullTime{
+		Time:  parsed,
+		Valid: true,
+	}
+}
+
+// browse command 입력시 실행되는 함수 : 현재 유저가 follow중인 feed들의 post들을 출력
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int
+	if len(cmd.args) > 1 { // browse limit
+		return errors.New("the browse handler expects at most one arguments, a number of posts to show (if no argument given, number set to default: 2)")
+	} else if len(cmd.args) == 0 {
+		limit = 2
+	} else {
+		var err error
+		limit, err = strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("error converting a to i: %w", err)
+		}
+	}
+	// @@@ 해답 cmd.args 예외처리
+	// limit := 2
+	// if len(cmd.Args) == 1 {
+	// 	if specifiedLimit, err := strconv.Atoi(cmd.Args[0]); err == nil {
+	// 		limit = specifiedLimit
+	// 	} else {
+	// 		return fmt.Errorf("invalid limit: %w", err)
+	// 	}
+	// }
+
+	// @@@ posts에는 posts.* 와 feeds.name 정보가 들어있음
+	posts, err := s.ptrDB.GetPostsForUser(
+		context.Background(),
+		database.GetPostsForUserParams{
+			UserID: user.ID,
+			Limit:  int32(limit),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("error getting posts for user: %w", err)
+	}
+
+	fmt.Println("=====================================")
+
+	for i, post := range posts {
+		fmt.Printf("* post %d title: %s\n--- From feed: %s ---\n", (i + 1), post.Title, post.FeedName)
+		fmt.Printf("* description: %s\n", post.Description.String)
+		fmt.Printf("* url: %s\n", post.Url)
+		fmt.Printf("* PubDate: %v\n", post.PublishedAt.Time)
 		fmt.Println("----------------------------------------")
 		fmt.Println()
 	}

@@ -34,7 +34,7 @@ ORDER BY feeds.updated_at;
 
 -- name: MarkFeedFetched :exec
 UPDATE feeds
-SET updated_at = $1, last_fetched_at = $1
+SET updated_at = $1, last_fetched_at = $1 -- @@@ 해답은 NOW() 함수로 sql 안에서 해결
 WHERE id = $2;
 
 

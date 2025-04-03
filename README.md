@@ -2,6 +2,7 @@
 > ## BOOT.DEV guided project 6
 > * ### CLI RSS feeds collector
 
+gator
 
 create .gatorconfig.json file at $HOME directory 
 
