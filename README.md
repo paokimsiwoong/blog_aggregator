@@ -6,8 +6,9 @@ gator description
 
 ***
 <details>
-<summary> <q><h2> Prerequisites </h2></q> </summary>
+<summary> <h2> Prerequisites </h2> </summary>
 <div markdown="1">
+
 ### 1. Install go v1.24 or later
 ```bash
 curl -sS https://webi.sh/golang | sh
@@ -50,9 +51,9 @@ blog_aggregator <command name> \[<argument>\]
 ```
 ### commands:
 * ### `register <userName>`
-> #### register and login as <userName>
+> #### register and login as `<userName>`
 * ### `login <userName>`
-> #### login as <userName>
+> #### login as `<userName>`
 * ### `users`
 > #### list stored users
 * ### `addfeed <feedName> <feedURL>`
@@ -66,7 +67,7 @@ blog_aggregator <command name> \[<argument>\]
 * ### `following`
 > #### list feeds current user following
 * ### `agg <timeBetweenReqs>`
-> #### connect and collect feeds' data every <timeBetweenReqs>. Ctrl+C to abort 
+> #### connect and collect feeds' data every `<timeBetweenReqs>`. Ctrl+C to abort 
 * ### `browse [<numPosts>]`
 > #### list posts from feeds current user following
 * ### `reset`
