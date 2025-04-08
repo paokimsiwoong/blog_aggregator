@@ -29,6 +29,9 @@ sudo passwd postgres
 ```bash
 sudo service postgresql start
 ```
+### 3. Install goose and run up migrations in the project's sql/schema directory 
+설명 추가
+
 </div>
 </details>
 
